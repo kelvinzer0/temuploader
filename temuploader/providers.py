@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 @dataclass
 class UploadResult:
     """Result of an upload operation."""
+
     url: str
     download_url: str
     provider: str
@@ -25,11 +26,13 @@ class UploadResult:
 
 class ProviderError(Exception):
     """Raised when a provider fails."""
+
     pass
 
 
 class BaseProvider(ABC):
     """Base class for all upload providers."""
+
     name: str = ""
     base_url: str = ""
     max_size_mb: int = 10
@@ -38,13 +41,13 @@ class BaseProvider(ABC):
     supports_text: bool = True
 
     @abstractmethod
-    def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        ...
+    def upload(self, filepath: str, filename: str = None) -> UploadResult: ...
 
     def upload_text(self, text: str) -> UploadResult:
         """Upload text content. Override if provider has text-specific API."""
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write(text)
             tmp = f.name
         try:
@@ -69,6 +72,7 @@ def _curl(args: list, timeout: int = 30) -> str:
 # File Upload Providers
 # ─────────────────────────────────────────────
 
+
 class TmpFilesOrg(BaseProvider):
     name = "tmpfiles.org"
     base_url = "https://tmpfiles.org"
@@ -84,7 +88,9 @@ class TmpFilesOrg(BaseProvider):
         url = data["data"]["url"]
         # Convert to direct download URL
         dl_url = url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
-        return UploadResult(url=url, download_url=dl_url, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=url, download_url=dl_url, provider=self.name, raw_response=resp
+        )
 
 
 class Litterbox(BaseProvider):
@@ -98,15 +104,22 @@ class Litterbox(BaseProvider):
         self.time = time
 
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        resp = _curl([
-            "-F", "reqtype=fileupload",
-            "-F", f"time={self.time}",
-            "-F", f"fileToUpload=@{filepath}",
-            self.base_url
-        ])
+        resp = _curl(
+            [
+                "-F",
+                "reqtype=fileupload",
+                "-F",
+                f"time={self.time}",
+                "-F",
+                f"fileToUpload=@{filepath}",
+                self.base_url,
+            ]
+        )
         if not resp.startswith("http"):
             raise ProviderError(f"Upload failed: {resp}")
-        return UploadResult(url=resp, download_url=resp, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=resp, download_url=resp, provider=self.name, raw_response=resp
+        )
 
 
 class Uguu(BaseProvider):
@@ -122,7 +135,9 @@ class Uguu(BaseProvider):
         if not data.get("success"):
             raise ProviderError(f"Upload failed: {resp}")
         url = data["files"][0]["url"]
-        return UploadResult(url=url, download_url=url, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=url, download_url=url, provider=self.name, raw_response=resp
+        )
 
 
 class CatboxMoe(BaseProvider):
@@ -133,14 +148,20 @@ class CatboxMoe(BaseProvider):
     supports_binary = True
 
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        resp = _curl([
-            "-F", "reqtype=fileupload",
-            "-F", f"fileToUpload=@{filepath}",
-            self.base_url
-        ])
+        resp = _curl(
+            [
+                "-F",
+                "reqtype=fileupload",
+                "-F",
+                f"fileToUpload=@{filepath}",
+                self.base_url,
+            ]
+        )
         if not resp.startswith("http"):
             raise ProviderError(f"Upload failed: {resp}")
-        return UploadResult(url=resp, download_url=resp, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=resp, download_url=resp, provider=self.name, raw_response=resp
+        )
 
 
 class PasteRs(BaseProvider):
@@ -155,13 +176,17 @@ class PasteRs(BaseProvider):
         resp = _curl(["--data-binary", f"@{filepath}", self.base_url])
         if not resp.startswith("http"):
             raise ProviderError(f"Upload failed: {resp}")
-        return UploadResult(url=resp, download_url=resp, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=resp, download_url=resp, provider=self.name, raw_response=resp
+        )
 
     def upload_text(self, text: str) -> UploadResult:
         resp = _curl(["-d", text, self.base_url])
         if not resp.startswith("http"):
             raise ProviderError(f"Upload failed: {resp}")
-        return UploadResult(url=resp, download_url=resp, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=resp, download_url=resp, provider=self.name, raw_response=resp
+        )
 
 
 class DelDog(BaseProvider):
@@ -173,24 +198,31 @@ class DelDog(BaseProvider):
     supports_text = True
 
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             text = f.read()
         return self.upload_text(text)
 
     def upload_text(self, text: str) -> UploadResult:
-        resp = _curl([
-            "-X", "POST",
-            "-H", "Content-Type: text/plain",
-            "-d", text,
-            f"{self.base_url}/documents"
-        ])
+        resp = _curl(
+            [
+                "-X",
+                "POST",
+                "-H",
+                "Content-Type: text/plain",
+                "-d",
+                text,
+                f"{self.base_url}/documents",
+            ]
+        )
         data = json.loads(resp)
         key = data.get("key")
         if not key:
             raise ProviderError(f"Upload failed: {resp}")
         url = f"{self.base_url}/{key}"
         dl_url = f"{self.base_url}/raw/{key}"
-        return UploadResult(url=url, download_url=dl_url, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=url, download_url=dl_url, provider=self.name, raw_response=resp
+        )
 
 
 class RentryCo(BaseProvider):
@@ -202,22 +234,20 @@ class RentryCo(BaseProvider):
     supports_text = True
 
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             text = f.read()
         return self.upload_text(text)
 
     def upload_text(self, text: str) -> UploadResult:
-        resp = _curl([
-            "-X", "POST",
-            "-F", f"text={text}",
-            f"{self.base_url}/api/new"
-        ])
+        resp = _curl(["-X", "POST", "-F", f"text={text}", f"{self.base_url}/api/new"])
         data = json.loads(resp)
         if data.get("status") != "200":
             raise ProviderError(f"Upload failed: {resp}")
         url = data["url"]
         dl_url = f"{url}/raw"
-        return UploadResult(url=url, download_url=dl_url, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=url, download_url=dl_url, provider=self.name, raw_response=resp
+        )
 
 
 class FilebinNet(BaseProvider):
@@ -230,15 +260,23 @@ class FilebinNet(BaseProvider):
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
         fname = filename or os.path.basename(filepath)
         import time
+
         bin_id = f"tem{int(time.time())}"
-        resp = _curl([
-            "-X", "POST",
-            "-H", "Content-Type: application/octet-stream",
-            "--data-binary", f"@{filepath}",
-            f"{self.base_url}/{bin_id}/{fname}"
-        ])
+        resp = _curl(
+            [
+                "-X",
+                "POST",
+                "-H",
+                "Content-Type: application/octet-stream",
+                "--data-binary",
+                f"@{filepath}",
+                f"{self.base_url}/{bin_id}/{fname}",
+            ]
+        )
         url = f"{self.base_url}/{bin_id}/{fname}"
-        return UploadResult(url=url, download_url=url, provider=self.name, raw_response=resp)
+        return UploadResult(
+            url=url, download_url=url, provider=self.name, raw_response=resp
+        )
 
 
 class GofileIo(BaseProvider):
@@ -254,16 +292,24 @@ class GofileIo(BaseProvider):
         servers = json.loads(resp)
         server = servers["data"]["servers"][0]["name"]
 
-        resp = _curl([
-            "-F", f"file=@{filepath}",
-            f"https://{server}.gofile.io/contents/uploadfile"
-        ])
+        resp = _curl(
+            [
+                "-F",
+                f"file=@{filepath}",
+                f"https://{server}.gofile.io/contents/uploadfile",
+            ]
+        )
         data = json.loads(resp)
         if data.get("status") != "ok":
             raise ProviderError(f"Upload failed: {resp}")
         url = data["data"]["downloadPage"]
-        return UploadResult(url=url, download_url=url, provider=self.name, raw_response=resp,
-                          extra={"token": data.get("guestToken", "")})
+        return UploadResult(
+            url=url,
+            download_url=url,
+            provider=self.name,
+            raw_response=resp,
+            extra={"token": data.get("guestToken", "")},
+        )
 
 
 class Termbin(BaseProvider):
@@ -275,7 +321,7 @@ class Termbin(BaseProvider):
     supports_text = True
 
     def upload(self, filepath: str, filename: str = None) -> UploadResult:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             text = f.read()
         return self.upload_text(text)
 
@@ -283,7 +329,10 @@ class Termbin(BaseProvider):
         try:
             r = subprocess.run(
                 ["nc", "termbin.com", "9999"],
-                input=text, capture_output=True, text=True, timeout=10
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             url = r.stdout.strip()
             if not url.startswith("http"):

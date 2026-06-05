@@ -6,8 +6,12 @@ import os
 import tempfile
 from typing import List
 from .providers import (
-    PROVIDERS, FILE_FALLBACK_ORDER, TEXT_FALLBACK_ORDER,
-    BaseProvider, UploadResult, ProviderError
+    PROVIDERS,
+    FILE_FALLBACK_ORDER,
+    TEXT_FALLBACK_ORDER,
+    BaseProvider,
+    UploadResult,
+    ProviderError,
 )
 
 
@@ -29,7 +33,9 @@ def list_providers() -> dict:
 def get_provider(name: str, **kwargs) -> BaseProvider:
     """Get a specific provider instance by name."""
     if name not in PROVIDERS:
-        raise ValueError(f"Unknown provider: {name}. Available: {list(PROVIDERS.keys())}")
+        raise ValueError(
+            f"Unknown provider: {name}. Available: {list(PROVIDERS.keys())}"
+        )
     return PROVIDERS[name](**kwargs)
 
 
@@ -39,19 +45,49 @@ def _get_file_size(filepath: str) -> int:
 
 def _is_text_file(filepath: str) -> bool:
     """Heuristic: check if file is text-based."""
-    text_exts = {'.txt', '.md', '.py', '.js', '.ts', '.json', '.yaml', '.yml',
-                 '.toml', '.xml', '.html', '.css', '.sh', '.bash', '.zsh',
-                 '.rb', '.go', '.rs', '.java', '.c', '.cpp', '.h', '.hpp',
-                 '.conf', '.cfg', '.ini', '.env', '.log', '.csv', '.sql'}
+    text_exts = {
+        ".txt",
+        ".md",
+        ".py",
+        ".js",
+        ".ts",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".xml",
+        ".html",
+        ".css",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".rb",
+        ".go",
+        ".rs",
+        ".java",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".conf",
+        ".cfg",
+        ".ini",
+        ".env",
+        ".log",
+        ".csv",
+        ".sql",
+    }
     ext = os.path.splitext(filepath)[1].lower()
     if ext in text_exts:
         return True
     # Try reading first bytes
     try:
-        with open(filepath, 'rb') as f:
+        with open(filepath, "rb") as f:
             chunk = f.read(8192)
             # If mostly printable, it's text
-            text_chars = sum(1 for b in chunk if b < 128 and (b >= 32 or b in (9, 10, 13)))
+            text_chars = sum(
+                1 for b in chunk if b < 128 and (b >= 32 or b in (9, 10, 13))
+            )
             return text_chars / max(len(chunk), 1) > 0.9
     except Exception:
         return False
@@ -86,11 +122,18 @@ def upload(
     is_file = os.path.isfile(source)
 
     if is_file:
-        return upload_file(source, is_text=is_text, providers=providers,
-                          fallback=fallback, verbose=verbose, **kwargs)
+        return upload_file(
+            source,
+            is_text=is_text,
+            providers=providers,
+            fallback=fallback,
+            verbose=verbose,
+            **kwargs,
+        )
     else:
-        return upload_text(source, providers=providers,
-                          fallback=fallback, verbose=verbose, **kwargs)
+        return upload_text(
+            source, providers=providers, fallback=fallback, verbose=verbose, **kwargs
+        )
 
 
 def upload_file(
@@ -143,7 +186,9 @@ def upload_file(
         size_mb = _get_file_size(filepath) / (1024 * 1024)
         if size_mb > p.max_size_mb:
             if verbose:
-                print(f"  ⚠ {name}: file too large ({size_mb:.1f}MB > {p.max_size_mb}MB), skipping")
+                print(
+                    f"  ⚠ {name}: file too large ({size_mb:.1f}MB > {p.max_size_mb}MB), skipping"
+                )
             continue
         valid_providers.append(name)
 
@@ -174,7 +219,7 @@ def upload_text(
         providers = TEXT_FALLBACK_ORDER
 
     # Write to temp file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         f.write(text)
         tmp = f.name
 
@@ -209,11 +254,14 @@ def _try_providers(
     for name in provider_names:
         # Only pass kwargs to providers that accept them (e.g. Litterbox takes 'time')
         import inspect
+
         try:
             cls = PROVIDERS[name]
             sig = inspect.signature(cls.__init__)
             # Filter kwargs to only those accepted by this provider
-            accepted = {k: v for k, v in kwargs.items() if k in sig.parameters and k != 'self'}
+            accepted = {
+                k: v for k, v in kwargs.items() if k in sig.parameters and k != "self"
+            }
             provider = cls(**accepted)
         except (TypeError, ValueError):
             provider = cls()

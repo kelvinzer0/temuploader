@@ -8,7 +8,7 @@ import sys
 import os
 
 from . import __version__
-from .core import upload, upload_file, upload_text, list_providers, quick_share, quick_file
+from .core import upload_file, upload_text, list_providers
 from .providers import PROVIDERS, FILE_FALLBACK_ORDER, TEXT_FALLBACK_ORDER
 
 

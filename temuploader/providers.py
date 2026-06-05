@@ -6,10 +6,8 @@ Each provider has: upload, download_url, max_size, retention, supports_binary.
 import os
 import json
 import subprocess
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass

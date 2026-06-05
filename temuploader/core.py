@@ -4,7 +4,7 @@ Core upload logic with fallback mechanism.
 
 import os
 import tempfile
-from typing import Optional, List, Union
+from typing import List
 from .providers import (
     PROVIDERS, FILE_FALLBACK_ORDER, TEXT_FALLBACK_ORDER,
     BaseProvider, UploadResult, ProviderError
@@ -53,7 +53,7 @@ def _is_text_file(filepath: str) -> bool:
             # If mostly printable, it's text
             text_chars = sum(1 for b in chunk if b < 128 and (b >= 32 or b in (9, 10, 13)))
             return text_chars / max(len(chunk), 1) > 0.9
-    except:
+    except Exception:
         return False
 
 

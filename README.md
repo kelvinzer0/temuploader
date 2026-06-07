@@ -8,7 +8,39 @@ A CLI tool that uploads files and text to temporary hosting services. If the fir
 
 ## Install
 
+The easiest way, works on any system:
+
 ```bash
+pipx install temuploader
+```
+
+If you don't have pipx:
+
+```bash
+# Ubuntu/Debian
+sudo apt install pipx
+pipx install temuploader
+
+# macOS
+brew install pipx
+pipx install temuploader
+
+# Arch
+sudo pacman -S python-pipx
+pipx install temuploader
+```
+
+Or with pip (may need --break-system-packages on newer systems):
+
+```bash
+pip install temuploader
+```
+
+Or in a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install temuploader
 ```
 

@@ -3,7 +3,9 @@ Core upload logic with fallback mechanism.
 """
 
 import os
+import sys
 import tempfile
+import zipfile
 from typing import List
 from .providers import (
     PROVIDERS,
@@ -13,6 +15,42 @@ from .providers import (
     UploadResult,
     ProviderError,
 )
+
+
+def zip_directory(dirpath: str, verbose: bool = False) -> str:
+    """
+    Zip a directory into a temporary .zip file.
+
+    Args:
+        dirpath: Path to the directory to zip.
+        verbose: Print status messages.
+
+    Returns:
+        Path to the created zip file (caller is responsible for cleanup).
+    """
+    dirpath = os.path.abspath(dirpath)
+    dir_name = os.path.basename(dirpath)
+
+    # Create temp file with .zip extension
+    fd, tmp_zip = tempfile.mkstemp(suffix=".zip", prefix=f"{dir_name}_")
+    os.close(fd)
+
+    if verbose:
+        print(f"  📁 Zipping directory: {dirpath}")
+
+    with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(dirpath):
+            for f in files:
+                filepath = os.path.join(root, f)
+                # Store with relative path from parent of dirpath
+                arcname = os.path.join(dir_name, os.path.relpath(filepath, dirpath))
+                zf.write(filepath, arcname)
+
+    size_mb = os.path.getsize(tmp_zip) / (1024 * 1024)
+    if verbose:
+        print(f"  ✓ Zipped: {tmp_zip} ({size_mb:.1f}MB)")
+
+    return tmp_zip
 
 
 def list_providers() -> dict:
@@ -118,10 +156,25 @@ def upload(
     Raises:
         ProviderError: If all providers fail.
     """
-    # Determine if source is a file path or text content
+    # Determine if source is a file path, directory, or text content
     is_file = os.path.isfile(source)
+    is_dir = os.path.isdir(source)
 
-    if is_file:
+    if is_dir:
+        tmp_zip = zip_directory(source, verbose=verbose)
+        try:
+            return upload_file(
+                tmp_zip,
+                is_text=False,
+                providers=providers,
+                fallback=fallback,
+                verbose=verbose,
+                **kwargs,
+            )
+        finally:
+            if os.path.exists(tmp_zip):
+                os.unlink(tmp_zip)
+    elif is_file:
         return upload_file(
             source,
             is_text=is_text,

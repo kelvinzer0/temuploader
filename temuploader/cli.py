@@ -8,7 +8,7 @@ import sys
 import os
 
 from . import __version__
-from .core import upload_file, upload_text, list_providers
+from .core import upload_file, upload_text, list_providers, zip_directory
 from .providers import PROVIDERS, FILE_FALLBACK_ORDER, TEXT_FALLBACK_ORDER
 
 
@@ -18,6 +18,7 @@ def main():
         description="Temporary file uploader with automatic fallback.",
         epilog="Examples:\n"
         "  temuploader myfile.txt                  # Upload file\n"
+        "  temuploader ./my-folder                 # Upload folder (auto-zip)\n"
         "  echo 'hello' | temuploader -            # Upload from stdin\n"
         "  temuploader -t 'Hello world'             # Upload text directly\n"
         "  temuploader myfile.bin -p litterbox tmpfiles.org\n"
@@ -26,7 +27,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("source", nargs="?", help="File to upload, or '-' for stdin")
+    parser.add_argument("source", nargs="?", help="File, folder, or '-' for stdin (folders are auto-zipped)")
     parser.add_argument("-t", "--text", help="Upload text directly")
     parser.add_argument(
         "-p",
@@ -106,20 +107,38 @@ def main():
                 **kwargs,
             )
         else:
-            # Upload file
+            # Upload file or directory
             if not os.path.exists(args.source):
-                print(f"✗ File not found: {args.source}", file=sys.stderr)
+                print(f"✗ Not found: {args.source}", file=sys.stderr)
                 sys.exit(1)
-            if args.verbose:
-                size = os.path.getsize(args.source)
-                print(f"📤 Uploading {args.source} ({size} bytes)...")
-            result = upload_file(
-                args.source,
-                providers=args.providers,
-                fallback=not args.no_fallback,
-                verbose=args.verbose,
-                **kwargs,
-            )
+
+            tmp_zip = None
+            upload_path = args.source
+
+            if os.path.isdir(args.source):
+                # Directory → zip first
+                tmp_zip = zip_directory(args.source, verbose=args.verbose)
+                upload_path = tmp_zip
+                if args.verbose:
+                    size = os.path.getsize(upload_path)
+                    print(f"📤 Uploading zipped folder {args.source} ({size} bytes)...")
+            else:
+                if args.verbose:
+                    size = os.path.getsize(args.source)
+                    print(f"📤 Uploading {args.source} ({size} bytes)...")
+
+            try:
+                result = upload_file(
+                    upload_path,
+                    providers=args.providers,
+                    fallback=not args.no_fallback,
+                    verbose=args.verbose,
+                    **kwargs,
+                )
+            finally:
+                # Cleanup temp zip if we created one
+                if tmp_zip and os.path.exists(tmp_zip):
+                    os.unlink(tmp_zip)
 
         # Output
         if args.json:

@@ -27,7 +27,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("source", nargs="?", help="File, folder, or '-' for stdin (folders are auto-zipped)")
+    parser.add_argument(
+        "source",
+        nargs="?",
+        help="File, folder, or '-' for stdin (folders are auto-zipped)",
+    )
     parser.add_argument("-t", "--text", help="Upload text directly")
     parser.add_argument(
         "-p",

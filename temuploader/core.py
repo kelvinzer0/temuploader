@@ -3,7 +3,6 @@ Core upload logic with fallback mechanism.
 """
 
 import os
-import sys
 import tempfile
 import zipfile
 from typing import List
